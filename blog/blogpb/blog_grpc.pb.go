@@ -22,6 +22,8 @@ const (
 	BlogService_CreateBlog_FullMethodName = "/blog.BlogService/CreateBlog"
 	BlogService_ReadBlog_FullMethodName   = "/blog.BlogService/ReadBlog"
 	BlogService_UpdateBlog_FullMethodName = "/blog.BlogService/UpdateBlog"
+	BlogService_DeleteBlog_FullMethodName = "/blog.BlogService/DeleteBlog"
+	BlogService_ListBlog_FullMethodName   = "/blog.BlogService/ListBlog"
 )
 
 // BlogServiceClient is the client API for BlogService service.
@@ -31,6 +33,8 @@ type BlogServiceClient interface {
 	CreateBlog(ctx context.Context, in *CreateBlogRequest, opts ...grpc.CallOption) (*CreateBlogResponse, error)
 	ReadBlog(ctx context.Context, in *ReadBlogRequest, opts ...grpc.CallOption) (*ReadBlogResponse, error)
 	UpdateBlog(ctx context.Context, in *UpdateBlogRequest, opts ...grpc.CallOption) (*UpdateBlogResponse, error)
+	DeleteBlog(ctx context.Context, in *DeleteBlogRequest, opts ...grpc.CallOption) (*DeleteBlogResponse, error)
+	ListBlog(ctx context.Context, in *ListBlogRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ListBlogResponse], error)
 }
 
 type blogServiceClient struct {
@@ -71,6 +75,35 @@ func (c *blogServiceClient) UpdateBlog(ctx context.Context, in *UpdateBlogReques
 	return out, nil
 }
 
+func (c *blogServiceClient) DeleteBlog(ctx context.Context, in *DeleteBlogRequest, opts ...grpc.CallOption) (*DeleteBlogResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteBlogResponse)
+	err := c.cc.Invoke(ctx, BlogService_DeleteBlog_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *blogServiceClient) ListBlog(ctx context.Context, in *ListBlogRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ListBlogResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &BlogService_ServiceDesc.Streams[0], BlogService_ListBlog_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[ListBlogRequest, ListBlogResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type BlogService_ListBlogClient = grpc.ServerStreamingClient[ListBlogResponse]
+
 // BlogServiceServer is the server API for BlogService service.
 // All implementations must embed UnimplementedBlogServiceServer
 // for forward compatibility.
@@ -78,6 +111,8 @@ type BlogServiceServer interface {
 	CreateBlog(context.Context, *CreateBlogRequest) (*CreateBlogResponse, error)
 	ReadBlog(context.Context, *ReadBlogRequest) (*ReadBlogResponse, error)
 	UpdateBlog(context.Context, *UpdateBlogRequest) (*UpdateBlogResponse, error)
+	DeleteBlog(context.Context, *DeleteBlogRequest) (*DeleteBlogResponse, error)
+	ListBlog(*ListBlogRequest, grpc.ServerStreamingServer[ListBlogResponse]) error
 	mustEmbedUnimplementedBlogServiceServer()
 }
 
@@ -96,6 +131,12 @@ func (UnimplementedBlogServiceServer) ReadBlog(context.Context, *ReadBlogRequest
 }
 func (UnimplementedBlogServiceServer) UpdateBlog(context.Context, *UpdateBlogRequest) (*UpdateBlogResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateBlog not implemented")
+}
+func (UnimplementedBlogServiceServer) DeleteBlog(context.Context, *DeleteBlogRequest) (*DeleteBlogResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteBlog not implemented")
+}
+func (UnimplementedBlogServiceServer) ListBlog(*ListBlogRequest, grpc.ServerStreamingServer[ListBlogResponse]) error {
+	return status.Errorf(codes.Unimplemented, "method ListBlog not implemented")
 }
 func (UnimplementedBlogServiceServer) mustEmbedUnimplementedBlogServiceServer() {}
 func (UnimplementedBlogServiceServer) testEmbeddedByValue()                     {}
@@ -172,6 +213,35 @@ func _BlogService_UpdateBlog_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _BlogService_DeleteBlog_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteBlogRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BlogServiceServer).DeleteBlog(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BlogService_DeleteBlog_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BlogServiceServer).DeleteBlog(ctx, req.(*DeleteBlogRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BlogService_ListBlog_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ListBlogRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(BlogServiceServer).ListBlog(m, &grpc.GenericServerStream[ListBlogRequest, ListBlogResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type BlogService_ListBlogServer = grpc.ServerStreamingServer[ListBlogResponse]
+
 // BlogService_ServiceDesc is the grpc.ServiceDesc for BlogService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -191,7 +261,17 @@ var BlogService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "UpdateBlog",
 			Handler:    _BlogService_UpdateBlog_Handler,
 		},
+		{
+			MethodName: "DeleteBlog",
+			Handler:    _BlogService_DeleteBlog_Handler,
+		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "ListBlog",
+			Handler:       _BlogService_ListBlog_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "blog/blogpb/blog.proto",
 }

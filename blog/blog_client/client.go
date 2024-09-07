@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 
 	"github.com/ananikitina/grpc-go/blog/blogpb"
@@ -67,4 +68,32 @@ func main() {
 		fmt.Printf("Error happened while updating:%v \n", updateErr)
 	}
 	fmt.Printf("Blog was updated:%v \n", updateRes)
+
+	//delete blog
+	fmt.Println("Deleting the blog")
+
+	deleteRes, deleteErr := c.DeleteBlog(context.Background(), &blogpb.DeleteBlogRequest{BlogId: blogId})
+	if deleteErr != nil {
+		fmt.Printf("Error happened while udeleting:%v \n", deleteErr)
+	}
+	fmt.Printf("Blog was deleted:%v \n", deleteRes)
+
+	//list blogs
+	fmt.Println("List blogs")
+
+	stream, err := c.ListBlog(context.Background(), &blogpb.ListBlogRequest{})
+	if err != nil {
+		log.Fatalf("error while calling ListBlog RPC:%v", err)
+	}
+	for {
+		res, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatalf("Something happened: %v", err)
+		}
+		fmt.Println(res.GetBlog())
+	}
+
 }
